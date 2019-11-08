@@ -1,12 +1,8 @@
 # Driving-simulator
-A simple driving game.
+A simple driving simulator used for assess driver distraction.
 
-In this project, I have developed  the following function:
+Features:
+1. speed sign
+2. Billboards
+3. Straight road
 
-#### 1.Traffic light system
-
-#### 2.Voice notification system
-
-#### 3.Traffic rules violation notification and points deduction
-
-![alt cover](https://github.com/DingYiWen/Driving-simulator/blob/master/%E6%88%AA%E5%9B%BE.jpg)
