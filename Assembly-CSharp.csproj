@@ -331,7 +331,6 @@
      <None Include="Assets\CSV\Camera_data_82.txt" />
      <None Include="Assets\CSV\Camera_data_11.txt" />
      <None Include="Assets\CSV\Camera_data_33.txt" />
-     <None Include="Assets\New folder\Camera_data_2.txt" />
      <None Include="Assets\CSV\Camera_data_65.txt" />
      <None Include="Assets\EasyRoads3D\shaders\EasyRoads3D - Unity 5 Standard.shader" />
      <None Include="Assets\CSV\Camera_data_1.txt" />
@@ -349,6 +348,7 @@
      <None Include="Assets\CSV\Camera_data_81.txt" />
      <None Include="Assets\CSV\Camera_data_50.txt" />
      <None Include="Assets\CSV\Camera_data_78.txt" />
+     <None Include="Assets\CSV\Camera_data_120.txt" />
      <None Include="Assets\EasyRoads3D\_readme .txt" />
      <None Include="Assets\CSV\Camera_data_87.txt" />
      <None Include="Assets\CSV\Camera_data_83.txt" />
@@ -365,6 +365,7 @@
      <None Include="Assets\CSV\Camera_data_98.txt" />
      <None Include="Assets\CSV\Camera_data_12.txt" />
      <None Include="Assets\RealisticCarControllerV3\LICENSE - Read Me!.txt" />
+     <None Include="Assets\CSV\Camera_data_121.txt" />
      <None Include="Assets\CSV\Camera_data_71.txt" />
      <None Include="Assets\EasyRoads3D\prefab sources\_custom prefabs.txt" />
      <None Include="Assets\CSV\Camera_data_67.txt" />
