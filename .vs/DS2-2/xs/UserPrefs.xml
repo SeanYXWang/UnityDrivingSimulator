@@ -1,0 +1,39 @@
+﻿<Properties StartupConfiguration="{E39BAF04-8D3C-7BD0-A2D5-038EF5CCFC85}|">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/RealisticCarControllerV3/Scripts/RCC_Camera.cs">
+    <Files>
+      <File FileName="Assets/DistanceTool/READ ME.txt" Line="9" Column="103" />
+      <File FileName="Assets/RealisticCarControllerV3/Scripts/RCC_HoodCamera.cs" Line="1" Column="1" />
+      <File FileName="Assets/RealisticCarControllerV3/Scripts/RCC_Camera.cs" Line="168" Column="1" />
+      <File FileName="Assets/RealisticCarControllerV3/Scripts/RCC_CameraConfig.cs" Line="1" Column="1" />
+      <File FileName="Assets/RealisticCarControllerV3/Scripts/RCC_CameraOrbit.cs" Line="1" Column="1" />
+      <File FileName="Assets/RealisticCarControllerV3/Scripts/RCC_Settings.cs" Line="39" Column="43" />
+      <File FileName="Assets/RealisticCarControllerV3/Standard Assets/Utility/FOVKick.cs" Line="42" Column="21" />
+      <File FileName="Assets/RealisticCarControllerV3/Standard Assets/Utility/CameraRefocus.cs" Line="24" Column="21" />
+      <File FileName="Assets/RealisticCarControllerV3/Scripts/RCC_MobileButtons.cs" Line="163" Column="14" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="DS2-2" expanded="True" selected="True">
+            <Node name="Assets" expanded="True">
+              <Node name="DistanceTool" expanded="True" />
+              <Node name="RealisticCarControllerV3" expanded="True">
+                <Node name="Scripts" expanded="True" />
+                <Node name="Standard Assets" expanded="True">
+                  <Node name="Utility" expanded="True" />
+                </Node>
+              </Node>
+            </Node>
+          </Node>
+        </State>
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.ItemProperties.Assembly-CSharp PreferredExecutionTarget="290a42f1-f2ba-4777-a0b6-23821ca9130f" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+</Properties>
