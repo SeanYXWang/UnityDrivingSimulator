@@ -72,6 +72,7 @@
      <Compile Include="Assets\CustomScripts\BillBoardContentChange\ads_change_21.cs" />
      <Compile Include="Assets\CustomScripts\BillBoardContentChange\ads_change_22.cs" />
      <Compile Include="Assets\CustomScripts\BillBoardContentChange\ads_change_23.cs" />
+     <Compile Include="Assets\CustomScripts\BillBoardContentChange\ads_change_24.cs" />
      <Compile Include="Assets\CustomScripts\BillBoardContentChange\ads_change_3.cs" />
      <Compile Include="Assets\CustomScripts\BillBoardContentChange\ads_change_4.cs" />
      <Compile Include="Assets\CustomScripts\BillBoardContentChange\ads_change_5.cs" />
@@ -295,6 +296,7 @@
      <None Include="Assets\CSV\Camera_data_38.txt" />
      <None Include="Assets\CSV\Camera_data_102.txt" />
      <None Include="Assets\CSV\Camera_data_90.txt" />
+     <None Include="Assets\CSV\Camera_data_122.txt" />
      <None Include="Assets\CSV\Camera_data_94.txt" />
      <None Include="Assets\CSV\Camera_data_8.txt" />
      <None Include="Assets\CSV\Camera_data_32.txt" />
