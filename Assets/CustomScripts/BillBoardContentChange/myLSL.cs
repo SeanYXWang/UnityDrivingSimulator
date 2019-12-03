@@ -38,7 +38,7 @@ public class myLSL : MonoBehaviour
                 || ads_change_8.flag || ads_change_9.flag || ads_change_10.flag || ads_change_11.flag 
                 || ads_change_12.flag || ads_change_13.flag || ads_change_14.flag || ads_change_15.flag 
                 || ads_change_16.flag || ads_change_17.flag || ads_change_18.flag || ads_change_19.flag 
-                || ads_change_20.flag || ads_change_21.flag || ads_change_22.flag || ads_change_23.flag);
+                || ads_change_20.flag || ads_change_21.flag || ads_change_22.flag || ads_change_23.flag || ads_change_24.flag);
         if (checkFlag && semaphore)
         {
             print("CHECK FLAG ============================== " + checkFlag);

@@ -36,6 +36,6 @@ public class gas_break_input : MonoBehaviour
     {
         Inputs();
         //TODO: edit here for Lab Stream Layer code. 
-        Debug.Log("gas, break, steer: " + gasInput + "," + breakInput + "," + steerInput);
+        //Debug.Log("gas, break, steer: " + gasInput + "," + breakInput + "," + steerInput);
     }
 }

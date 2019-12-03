@@ -12,340 +12,707 @@ using System.Collections;
 using System.Collections.Generic;
 
 [AddComponentMenu("BoneCracker Games/Realistic Car Controller/AI/AI Controller")]
-public class RCC_AICarController : MonoBehaviour {
+public class RCC_AICarController : MonoBehaviour
+{
+    private RCC_Settings RCCSettings { get { return RCC_Settings.Instance; } }      // Getting an Instance of Main Shared RCC Settings.
+    ////private Rigidbody rigid;        // Rigidbody.
+    //internal bool sleepingRigid = false;        // Used For Disabling Unnecessary Raycasts When RB Is Sleeping.
 
-	private RCC_CarControllerV3 carController;
-	private Rigidbody rigid;
-	
-	// Waypoint Container.
-	private RCC_AIWaypointsContainer waypointsContainer;
-	public int currentWaypoint = 0;
+    //public bool AIController = false;       // Use AI Controller.
 
-	// AI Type
-	public AIType _AIType;
-	public enum AIType {FollowWaypoints, ChasePlayer}
-	
-	// Raycast distances.
-	public LayerMask obstacleLayers = -1;
-	public int wideRayLength = 20;
-	public int tightRayLength = 20;
-	public int sideRayLength = 3;
-	private float rayInput = 0f;
-	private bool  raycasting = false;
-	private float resetTime = 0f; 
-	
-	// Steer, motor, and brake inputs.
-	private float steerInput = 0f;
-	private float gasInput = 0f;
-	private float brakeInput = 0f;
+    //// Wheel Transforms Of The Vehicle.
+    //public Transform FrontLeftWheelTransform;
+    //public Transform FrontRightWheelTransform;
+    //public Transform RearLeftWheelTransform;
+    //public Transform RearRightWheelTransform;
 
-	public bool limitSpeed = false;
-	public float maximumSpeed = 100f;
+    //// Wheel Colliders Of The Vehicle.
+    //public RCC_WheelCollider FrontLeftWheelCollider;
+    //public RCC_WheelCollider FrontRightWheelCollider;
+    //public RCC_WheelCollider RearLeftWheelCollider;
+    //public RCC_WheelCollider RearRightWheelCollider;
 
-	public bool smoothedSteer = true;
-	
-	// Brake Zone.
-	private float maximumSpeedInBrakeZone = 0f;
-	private bool inBrakeZone = false;
-	
-	// Counts laps and how many waypoints passed.
-	public int lap = 0;
-	public int totalWaypointPassed = 0;
-	public int nextWaypointPassRadius = 40;
-	public bool ignoreWaypointNow = false;
-	
-	// Unity's Navigator.
-	private UnityEngine.AI.NavMeshAgent navigator;
-	private GameObject navigatorObject;
+    //// All Wheel Colliders.
+    //internal RCC_WheelCollider[] allWheelColliders;
 
-	void Awake() {
+    //// Extra Wheels. In case of if your vehicle has extra wheels.
+    //public Transform[] ExtraRearWheelsTransform;
+    //public RCC_WheelCollider[] ExtraRearWheelsCollider;
 
-		carController = GetComponent<RCC_CarControllerV3>();
-		rigid = GetComponent<Rigidbody>();
-		carController.AIController = true;
-		waypointsContainer = FindObjectOfType(typeof(RCC_AIWaypointsContainer)) as RCC_AIWaypointsContainer;
+    //public bool applyEngineTorqueToExtraRearWheelColliders = true;      //Applies Engine Torque To Extra Rear Wheels.
 
-		navigatorObject = new GameObject("Navigator");
-		navigatorObject.transform.parent = transform;
-		navigatorObject.transform.localPosition = Vector3.zero;
-		navigatorObject.AddComponent<UnityEngine.AI.NavMeshAgent>();
-		navigatorObject.GetComponent<UnityEngine.AI.NavMeshAgent>().radius = 1;
-		navigatorObject.GetComponent<UnityEngine.AI.NavMeshAgent>().speed = 1;
-		navigatorObject.GetComponent<UnityEngine.AI.NavMeshAgent>().angularSpeed = 1000f;
-		navigatorObject.GetComponent<UnityEngine.AI.NavMeshAgent>().height = 1;
-		navigatorObject.GetComponent<UnityEngine.AI.NavMeshAgent>().avoidancePriority = 50;
-		navigator = navigatorObject.GetComponent<UnityEngine.AI.NavMeshAgent>();
+    //public Transform SteeringWheel;     // Driver Steering Wheel. In case of if your vehicle has individual steering wheel model in interior.
 
-	}
-	
-	void Update(){
-		
-		navigator.transform.localPosition = new Vector3(0, carController.FrontLeftWheelCollider.transform.localPosition.y, carController.FrontLeftWheelCollider.transform.localPosition.z);
-		
-	}
-	
-	void  FixedUpdate (){
+    //// Set wheel drive of the vehicle. If you are using rwd, you have to be careful with your rear wheel collider
+    //// settings and com of the vehicle. Otherwise, vehicle will behave like a toy.
+    //public WheelType _wheelTypeChoise = WheelType.RWD;
+    //public enum WheelType { FWD, RWD, AWD, BIASED }
+    //[Range(0f, 100f)] public float biasedWheelTorque = 100f;
 
-		if(!carController.canControl)
-			return;
+    //public Transform COM;       // Center of mass.
 
-		Navigation();
-		FixedRaycasts();
-		ApplyTorques();
-		Resetting();
+    //public bool canControl = true;      // Enables/Disables controlling the vehicle.
+    //public bool runEngineAtAwake { get { return RCCSettings.runEngineAtAwake; } }       // Engine Running At Awake?
+    //public bool engineRunning = false;      // Engine Running Now?
+    //public bool autoReverse { get { return RCCSettings.autoReverse; } }     // Enables / Disables auto reversing when player press brake button. Useful for if you are making parking style game.
+    //public bool automaticGear { get { return RCCSettings.useAutomaticGear; } }  // Enables / Disables automatic gear shifting of the vehicle.
+    //public bool semiAutomaticGear = false;      // Enables / Disables automatic gear shifting of the vehicle.
+    //                                            //private bool automaticClutch = true;		// Enables / Disables automatic clutch of the vehicle.
+    //private bool canGoReverseNow = false;
 
-	}
-	
-	void Navigation (){
-		
-		if(!waypointsContainer){
-			Debug.LogError("Waypoints Container Couldn't Found!");
-			enabled = false;
-			return;
-		}
-		if(_AIType == AIType.FollowWaypoints && waypointsContainer && waypointsContainer.waypoints.Count < 1){
-			Debug.LogError("Waypoints Container Doesn't Have Any Waypoints!");
-			enabled = false;
-			return;
-		}
-		
-		// Next waypoint's position.
-		Vector3 nextWaypointPosition = transform.InverseTransformPoint( new Vector3(waypointsContainer.waypoints[currentWaypoint].position.x, transform.position.y, waypointsContainer.waypoints[currentWaypoint].position.z));
-		float navigatorInput = Mathf.Clamp(transform.InverseTransformDirection(navigator.desiredVelocity).x * 1.5f, -1f, 1f);
+    //public AnimationCurve[] engineTorqueCurve;      // Each Gear Ratio Curves Generated By Editor Script.
+    //public float[] gearSpeed;       // Target Speed For Changing Gear.
+    //public float engineTorque = 3000f;      // Default Engine Torque.
+    //public float brakeTorque = 2500f;       // Maximum Brake Torque.
+    //public float maxEngineRPM = 7000f;      // Maximum Engine RPM.
+    //public float minEngineRPM = 1000f;      // Minimum Engine RPM.
+    //[Range(.75f, 2f)] public float engineInertia = 1f;
+    //public bool useRevLimiter = true;
+    //public bool useExhaustFlame = true;
 
-		if (_AIType == AIType.FollowWaypoints) {
-			if(navigator.isOnNavMesh)
-				navigator.SetDestination (waypointsContainer.waypoints [currentWaypoint].position);
-		} else {
-			if(navigator.isOnNavMesh)
-				navigator.SetDestination (waypointsContainer.target.position);
-		}
-		//Steering Input.
-		if(carController.direction == 1){
-			if(!ignoreWaypointNow)
-				steerInput = Mathf.Clamp((navigatorInput + rayInput), -1f, 1f);
-			else
-				steerInput = Mathf.Clamp(rayInput, -1f, 1f);
-		}else{
-			steerInput = Mathf.Clamp((-navigatorInput - rayInput), -1f, 1f);
-		}
-		
-		if(!inBrakeZone){
-			if(carController.speed >= 25){
-				brakeInput = Mathf.Lerp(0f, .85f, (Mathf.Abs(steerInput)));
-			}else{
-				brakeInput = 0f;
-			}
-		}else{
-			brakeInput = Mathf.Lerp(0f, 1f, (carController.speed - maximumSpeedInBrakeZone) / maximumSpeedInBrakeZone);
-		}
+    //public float steerAngle = 40f;      // Maximum Steer Angle Of Your Vehicle.
+    //public float highspeedsteerAngle = 15f;     // Maximum Steer Angle At Highest Speed.
+    //public float highspeedsteerAngleAtspeed = 100f;     // Highest Speed For Maximum Steer Angle.
+    //public float antiRollFrontHorizontal = 5000f;       // Anti Roll Horizontal Force For Preventing Flip Overs And Stability.
+    //public float antiRollRearHorizontal = 5000f;        // Anti Roll Horizontal Force For Preventing Flip Overs And Stability.
+    //public float antiRollVertical = 0f;     // Anti Roll Vertical Force For Preventing Flip Overs And Stability.
 
-		if(!inBrakeZone){
-			
-			if(carController.speed >= 10){
-				if(!carController.changingGear)
-					gasInput = Mathf.Clamp(1f - (Mathf.Abs(navigatorInput / 10f)  - Mathf.Abs(rayInput / 10f)), .75f, 1f);
-				else
-					gasInput = 0f;
-			}else{
-				if(!carController.changingGear)
-					gasInput = 1f;
-				else
-					gasInput = 0f;
-			}
+    //// Downforce.
+    //public float downForce = 25f;       // Applies Downforce Related With Vehicle Speed.
 
-		}else{
-			
-			if(!carController.changingGear)
-				gasInput = Mathf.Lerp(1f, 0f, (carController.speed) / maximumSpeedInBrakeZone);
-			else
-				gasInput = 0f;
+    //public float speed;     // Vehicle Speed.
+    //public float defMaxSpeed;       // Original Maximum Speed.
+    //public float maxspeed = 220f;       //Maximum Speed.
 
-		}
+    private float resetTime = 0f;
+    //private float orgSteerAngle = 0f; 
+    //private float fuelInput = 0f;
 
-		if (_AIType == AIType.FollowWaypoints) {
-		
-			// Checks for the distance to next waypoint. If it is less than written value, then pass to next waypoint.
-			if (nextWaypointPosition.magnitude < nextWaypointPassRadius) {
-				
-				currentWaypoint++;
-				totalWaypointPassed++;
-			
-				// If all waypoints are passed, sets the current waypoint to first waypoint and increase lap.
-				if (currentWaypoint >= waypointsContainer.waypoints.Count) {
-					currentWaypoint = 0;
-					lap++;
-				}
+    //// Gears.
+    //public int currentGear = 0;     // Current Gear Of The Vehicle.
+    //public int totalGears = 6;          // Total Gears Of The Vehicle.
+    //[Range(0f, .5f)] public float gearShiftingDelay = .35f;
+    //public bool changingGear = false;       // Changing Gear Currently.
+    //public int direction = 1;       // Reverse Gear Currently.
 
-			}
+    //public bool autoGenerateGearCurves = true;
+    //public bool autoGenerateTargetSpeedsForChangingGear = true;
+    //private bool engineStarting = false;
 
-		}
-		
-	}
-	
-	void Resetting (){
-		
-		if(carController.speed <= 5 && transform.InverseTransformDirection(rigid.velocity).z < 1f)
-			resetTime += Time.deltaTime;
-		
-		if(resetTime >= 2)
-			carController.direction = -1;
+    //// AudioSources and AudioClips.
+    //private AudioSource engineStartSound;
+    //public AudioClip engineStartClip;
+    //internal AudioSource engineSoundOn;
+    //public AudioClip engineClipOn;
+    //private AudioSource engineSoundOff;
+    //public AudioClip engineClipOff;
+    //[HideInInspector] public AudioSource engineSoundIdle;
+    //public AudioClip engineClipIdle;
+    //private AudioSource gearShiftingSound;
 
-		if(resetTime >= 4 || carController.speed >= 25){
-			carController.direction = 1;
-			resetTime = 0;
-		}
-		
-	}
-	
-	void FixedRaycasts(){
-		
-		Vector3 forward = transform.TransformDirection ( new Vector3(0, 0, 1));
-		Vector3 pivotPos = new Vector3(transform.localPosition.x, carController.FrontLeftWheelCollider.transform.position.y, transform.localPosition.z);
-		RaycastHit hit;
-		
-		// New bools effected by fixed raycasts.
-		bool  tightTurn = false;
-		bool  wideTurn = false;
-		bool  sideTurn = false;
-		bool  tightTurn1 = false;
-		bool  wideTurn1 = false;
-		bool  sideTurn1 = false;
-		
-		// New input steers effected by fixed raycasts.
-		float newinputSteer1 = 0f;
-		float newinputSteer2 = 0f;
-		float newinputSteer3 = 0f;
-		float newinputSteer4 = 0f;
-		float newinputSteer5 = 0f;
-		float newinputSteer6 = 0f;
-		
-		// Drawing Rays.
-		Debug.DrawRay (pivotPos, Quaternion.AngleAxis(25, transform.up) * forward * wideRayLength, Color.white);
-		Debug.DrawRay (pivotPos, Quaternion.AngleAxis(-25, transform.up) * forward * wideRayLength, Color.white);
-		
-		Debug.DrawRay (pivotPos, Quaternion.AngleAxis(7, transform.up) * forward * tightRayLength, Color.white);
-		Debug.DrawRay (pivotPos, Quaternion.AngleAxis(-7, transform.up) * forward * tightRayLength, Color.white);
+    //// Shared AudioSources and AudioClips.
+    //private AudioClip[] gearShiftingClips { get { return RCCSettings.gearShiftingClips; } }
+    //private AudioSource crashSound;
+    //private AudioClip[] crashClips { get { return RCCSettings.crashClips; } }
+    //private AudioSource reversingSound;
+    //private AudioClip reversingClip { get { return RCCSettings.reversingClip; } }
+    //private AudioSource windSound;
+    //private AudioClip windClip { get { return RCCSettings.windClip; } }
+    //private AudioSource brakeSound;
+    //private AudioClip brakeClip { get { return RCCSettings.brakeClip; } }
+    //private AudioSource NOSSound;
+    //private AudioClip NOSClip { get { return RCCSettings.NOSClip; } }
+    //private AudioSource turboSound;
+    //private AudioClip turboClip { get { return RCCSettings.turboClip; } }
+    //private AudioSource blowSound;
+    //private AudioClip blowClip { get { return RCCSettings.turboClip; } }
 
-		Debug.DrawRay (pivotPos, Quaternion.AngleAxis(90, transform.up) * forward * sideRayLength, Color.white);
-		Debug.DrawRay (pivotPos, Quaternion.AngleAxis(-90, transform.up) * forward * sideRayLength, Color.white);
-		
-		// Wide Raycasts.
-		if (Physics.Raycast (pivotPos, Quaternion.AngleAxis(25, transform.up) * forward, out hit, wideRayLength, obstacleLayers) && !hit.collider.isTrigger && hit.transform.root != transform) {
-			Debug.DrawRay (pivotPos, Quaternion.AngleAxis(25, transform.up) * forward * wideRayLength, Color.red);
-			newinputSteer1 = Mathf.Lerp (-.5f, 0f, (hit.distance / wideRayLength));
-			wideTurn = true;
-		}
-		
-		else{
-			newinputSteer1 = 0f;
-			wideTurn = false;
-		}
-		
-		if (Physics.Raycast (pivotPos, Quaternion.AngleAxis(-25, transform.up) * forward, out hit, wideRayLength, obstacleLayers) && !hit.collider.isTrigger && hit.transform.root != transform) {
-			Debug.DrawRay (pivotPos, Quaternion.AngleAxis(-25, transform.up) * forward * wideRayLength, Color.red);
-			newinputSteer4 = Mathf.Lerp (.5f, 0f, (hit.distance / wideRayLength));
-			wideTurn1 = true;
-		}else{
-			newinputSteer4 = 0f;
-			wideTurn1 = false;
-		}
-		
-		// Tight Raycasts.
-		if (Physics.Raycast (pivotPos, Quaternion.AngleAxis(7, transform.up) * forward, out hit, tightRayLength, obstacleLayers) && !hit.collider.isTrigger && hit.transform.root != transform) {
-			Debug.DrawRay (pivotPos, Quaternion.AngleAxis(7, transform.up) * forward * tightRayLength , Color.red);
-			newinputSteer3 = Mathf.Lerp (-1f, 0f, (hit.distance / tightRayLength));
-			tightTurn = true;
-		}else{
-			newinputSteer3 = 0f;
-			tightTurn = false;
-		}
-		
-		if (Physics.Raycast (pivotPos, Quaternion.AngleAxis(-7, transform.up) * forward, out hit, tightRayLength, obstacleLayers) && !hit.collider.isTrigger && hit.transform.root != transform) {
-			Debug.DrawRay (pivotPos, Quaternion.AngleAxis(-7, transform.up) * forward * tightRayLength, Color.red);
-			newinputSteer2 = Mathf.Lerp (1f, 0f, (hit.distance / tightRayLength));
-			tightTurn1 = true;
-		}else{
-			newinputSteer2 = 0f;
-			tightTurn1 = false;
-		}
+    //[HideInInspector] public bool isRuning = false;
 
-		// Side Raycasts.
-		if (Physics.Raycast (pivotPos, Quaternion.AngleAxis(90, transform.up) * forward, out hit, sideRayLength, obstacleLayers) && !hit.collider.isTrigger && hit.transform.root != transform) {
-			Debug.DrawRay (pivotPos, Quaternion.AngleAxis(90, transform.up) * forward * sideRayLength , Color.red);
-			newinputSteer5 = Mathf.Lerp (-1f, 0f, (hit.distance / sideRayLength));
-			sideTurn = true;
-		}else{
-			newinputSteer5 = 0f;
-			sideTurn = false;
-		}
-		
-		if (Physics.Raycast (pivotPos, Quaternion.AngleAxis(-90, transform.up) * forward, out hit, sideRayLength, obstacleLayers) && !hit.collider.isTrigger && hit.transform.root != transform) {
-			Debug.DrawRay (pivotPos, Quaternion.AngleAxis(-90, transform.up) * forward * sideRayLength, Color.red);
-			newinputSteer6 = Mathf.Lerp (1f, 0f, (hit.distance / sideRayLength));
-			sideTurn1 = true;
-		}else{
-			newinputSteer6 = 0f;
-			sideTurn1 = false;
-		}
-		
-		if(wideTurn || wideTurn1 || tightTurn || tightTurn1 || sideTurn || sideTurn1)
-			raycasting = true;
-		else
-			raycasting = false;
-		
-		if(raycasting)
-			rayInput = (newinputSteer1 + newinputSteer2 + newinputSteer3 + newinputSteer4 + newinputSteer5 + newinputSteer6);
-		else
-			rayInput = 0f;
-		
-		if(raycasting && Mathf.Abs(rayInput) > .5f)
-			ignoreWaypointNow = true;
-		else
-			ignoreWaypointNow = false;
-		
-	}
+    //// Min / Max Sound Pitches and Volumes.
+    //[Range(.25f, 1f)] public float minEngineSoundPitch = .75f;
+    //[Range(1.25f, 2f)] public float maxEngineSoundPitch = 1.75f;
+    //[Range(0f, 1f)] public float minEngineSoundVolume = .05f;
+    //[Range(0f, 1f)] public float maxEngineSoundVolume = .85f;
 
-	void ApplyTorques(){
+    //// Main Gameobjects for keep the Hierarchy clean and organized.
+    //private GameObject allContactParticles;
 
-		if(carController.direction == 1){
-			if(!limitSpeed){
-				carController.gasInput = gasInput;
-			}else{
-				carController.gasInput = gasInput * Mathf.Clamp01(Mathf.Lerp(10f, 0f, (carController.speed) / maximumSpeed));
-			}
-		}else{
-			carController.gasInput = 0f;
-		}
+    //// Inputs.
 
-		if(smoothedSteer)
-			carController.steerInput = Mathf.Lerp(carController.steerInput, steerInput, Time.deltaTime * 20f);
-		else
-			carController.steerInput = steerInput;
+    //[HideInInspector] public float clutchInput = 0f;
+    //[HideInInspector] public float handbrakeInput = 0f;
+    //[HideInInspector] public float boostInput = 1f;
+    //[HideInInspector] public bool cutGas = false;
+    //[HideInInspector] public float idleInput = 0f;
 
-		if(carController.direction == 1)
-			carController.brakeInput = brakeInput;
-		else
-			carController.brakeInput = gasInput;
+    //#region Processed Inputs
+    //// Processed Inputs. Do not feed these values on your own script. Feed above inputs.
+    //internal float _gasInput
+    //{
+    //    get
+    //    {
 
-	}
-	
-	void OnTriggerEnter (Collider col){
-		
-		if(col.gameObject.GetComponent<RCC_AIBrakeZone>()){
-			inBrakeZone = true;
-			maximumSpeedInBrakeZone = col.gameObject.GetComponent<RCC_AIBrakeZone>().targetSpeed;
-		}
-		
-	}
-	
-	void OnTriggerExit (Collider col){
-		
-		if(col.gameObject.GetComponent<RCC_AIBrakeZone>()){
-			inBrakeZone = false;
-			maximumSpeedInBrakeZone = 0;
-		}
-		
-	}
-	
+    //        if (fuelInput <= .25f)
+    //            return 0f;
+
+    //        if (!automaticGear || semiAutomaticGear)
+    //        {
+    //            if (!changingGear && !cutGas)
+    //                return Mathf.Clamp01(gasInput);
+    //            else
+    //                return 0f;
+    //        }
+    //        else
+    //        {
+    //            if (!changingGear && !cutGas)
+    //                return (direction == 1 ? Mathf.Clamp01(gasInput) : Mathf.Clamp01(brakeInput));
+    //            else
+    //                return 0f;
+    //        }
+
+    //    }
+    //    set { gasInput = value; }
+    //}
+
+    //internal float _brakeInput
+    //{
+    //    get
+    //    {
+
+    //        if (!automaticGear || semiAutomaticGear)
+    //        {
+    //            return Mathf.Clamp01(brakeInput);
+    //        }
+    //        else
+    //        {
+    //            if (!cutGas)
+    //                return (direction == 1 ? Mathf.Clamp01(brakeInput) : Mathf.Clamp01(gasInput));
+    //            else
+    //                return 0f;
+    //        }
+
+    //    }
+    //    set { brakeInput = value; }
+    //}
+
+    //internal float _boostInput
+    //{
+    //    get
+    //    {
+
+    //        if (useNOS && NoS > 5 && _gasInput >= .5f)
+    //        {
+    //            return boostInput;
+    //        }
+    //        else
+    //        {
+    //            return 1f;
+    //        }
+
+    //    }
+    //    set { boostInput = value; }
+    //}
+
+    //#endregion
+
+    //internal float engineRPM = 0f;      // Actual Engine RPM.
+    //internal float rawEngineRPM = 0f;       // Smoothed Engine RPM.
+
+    //public GameObject chassis;      // Script Will Simulate Chassis Movement Based On Vehicle Rigidbody Velocity.
+    //public float chassisVerticalLean = 4f;      // Chassis Vertical Lean Sensitivity.
+    //public float chassisHorizontalLean = 4f;        // Chassis Horizontal Lean Sensitivity.
+
+    //// Lights.
+    //public bool lowBeamHeadLightsOn = false;        // Low Beam Head Lights.
+    //public bool highBeamHeadLightsOn = false;       // High Beam Head Lights.
+
+    //// For Indicators.
+    //public IndicatorsOn indicatorsOn;       // Indicator System.
+    //public enum IndicatorsOn { Off, Right, Left, All }
+    //public float indicatorTimer = 0f;       // Used for indicator on / off sequence.
+
+    //// Damage.
+    //public bool useDamage = true;       // Use Damage.
+    //struct originalMeshVerts { public Vector3[] meshVerts; }        // Struct for Original Mesh Verticies positions.
+    //private originalMeshVerts[] originalMeshData;       // Array for struct above.
+    //public MeshFilter[] deformableMeshFilters;      // Deformable Meshes.
+    //public float randomizeVertices = 1f;        // Randomize Verticies on Collisions for more complex deforms.
+    //public float damageRadius = .5f;        // Verticies in this radius will be effected on collisions.
+
+    //private float minimumVertDistanceForDamagedMesh = .002f;        // Comparing Original Vertex Positions Between Last Vertex Positions To Decide Mesh Is Repaired Or Not.
+
+    //[HideInInspector] public bool repaired = true;      // Returns true if vehicle is repaired.
+
+    //public float maximumDamage = .5f;       // Maximum Vert Distance For Limiting Damage. 0 Value Will Disable The Limit.
+    //private float minimumCollisionForce = 5f;       // Minimum collision force.
+    //public float damageMultiplier = 1f;     // Damage multiplier.
+
+    //public GameObject contactSparkle { get { return RCCSettings.contactParticles; } }       // Contact Particles for collisions. It must be Particle System.
+    //public int maximumContactSparkle = 5;       //	Contact Particles will be ready to use for collisions in pool. 
+    //private List<ParticleSystem> contactSparkeList = new List<ParticleSystem>();        // Array for Contact Particles.
+    //public bool repairNow = false;      // Repair Now.
+
+    //// Used for Angular and Linear Steering Helper.
+    //private Vector3 localVector;
+    //private Quaternion rot = Quaternion.identity;
+    //private float oldRotation;
+    //public Transform velocityDirection;
+    //public Transform steeringDirection;
+    //public float velocityAngle;
+    //private float angle;
+    //private float angularVelo;
+
+    //// Driving Assistances.
+    //public bool ABS = true;
+    //public bool TCS = true;
+    //public bool ESP = true;
+    //public bool steeringHelper = true;
+    //public bool tractionHelper = true;
+
+    //// Driving Assistance thresholds.
+    //[Range(.05f, .5f)] public float ABSThreshold = .35f;
+    //[Range(.05f, .5f)] public float TCSThreshold = .25f;
+    //[Range(0f, 1f)] public float TCSStrength = 1f;
+    //[Range(.05f, .5f)] public float ESPThreshold = .25f;
+    //[Range(.1f, 1f)] public float ESPStrength = .5f;
+    //[Range(0f, 1f)] public float steerHelperLinearVelStrength = .1f;
+    //[Range(0f, 1f)] public float steerHelperAngularVelStrength = .1f;
+    //[Range(0f, 1f)] public float tractionHelperStrength = .1f;
+
+    //// Is Driving Assistance is in action now?
+    //public bool ABSAct = false;
+    //public bool TCSAct = false;
+    //public bool ESPAct = false;
+
+    //// ESP Bools
+    //public bool overSteering = false;
+    //public bool underSteering = false;
+
+    //// Drift Variables
+    //internal float driftAngle = 0f;
+    //internal bool driftingNow = false;
+    //private bool applyCounterSteering = true;       // Applies counter steering when vehicle is drifting. It helps to keep the control fine of the vehicle.
+
+    //// Cambers
+    //public float frontCamber = 0f;
+    //public float rearCamber = 0f;
+
+    //// Used For ESP
+    //public float frontSlip = 0f;
+    //public float rearSlip = 0f;
+
+    //private WheelCollider anyWheel;
+
+    //public float turboBoost = 0f;
+    //public float NoS = 100f;
+    //private float NoSConsumption = 25f;
+    //private float NoSRegenerateTime = 10f;
+
+    //public bool useNOS = false;
+    //public bool useTurbo = false;
+
+    //private RCC_Camera carCamera;
+
+
+    // -------------------------------------------------------------------------------
+
+    private RCC_CarControllerV3 carController;
+    private Rigidbody rigid;
+
+    // Waypoint Container.
+    private RCC_AIWaypointsContainer waypointsContainer;
+    public int currentWaypoint = 0;
+
+    // AI Type
+    public AIType _AIType;
+    public enum AIType { FollowWaypoints, ChasePlayer }
+
+    // Raycast distances.
+    public LayerMask obstacleLayers = -1;
+    public int wideRayLength = 20;
+    public int tightRayLength = 20;
+    public int sideRayLength = 3;
+    private float rayInput = 0f;
+    private bool raycasting = false;
+ 
+
+    // Steer, motor, and brake inputs.
+    private float steerInput = 0f;
+    private float gasInput = 0f;
+    private float brakeInput = 0f;
+
+    public bool limitSpeed = false;
+    public float maximumSpeed = 100f;
+
+    public bool smoothedSteer = true;
+
+    // Brake Zone.
+    private float maximumSpeedInBrakeZone = 0f;
+    private bool inBrakeZone = false;
+
+    // Counts laps and how many waypoints passed.
+    public int lap = 0;
+    public int totalWaypointPassed = 0;
+    public int nextWaypointPassRadius = 40;
+    public bool ignoreWaypointNow = false;
+
+    // Unity's Navigator.
+    private UnityEngine.AI.NavMeshAgent navigator;
+    private GameObject navigatorObject;
+
+    void Awake()
+    {
+
+        carController = GetComponent<RCC_CarControllerV3>();
+        Debug.Log(" RCC_AICarController carController.canControl = " + carController.canControl);
+        rigid = GetComponent<Rigidbody>();
+        carController.AIController = true;
+        waypointsContainer = FindObjectOfType(typeof(RCC_AIWaypointsContainer)) as RCC_AIWaypointsContainer;
+
+        navigatorObject = new GameObject("Navigator");
+        navigatorObject.transform.parent = transform;
+        navigatorObject.transform.localPosition = Vector3.zero;
+        navigatorObject.AddComponent<UnityEngine.AI.NavMeshAgent>();
+        navigatorObject.GetComponent<UnityEngine.AI.NavMeshAgent>().radius = 1;
+        navigatorObject.GetComponent<UnityEngine.AI.NavMeshAgent>().speed = 1;
+        navigatorObject.GetComponent<UnityEngine.AI.NavMeshAgent>().angularSpeed = 1000f;
+        navigatorObject.GetComponent<UnityEngine.AI.NavMeshAgent>().height = 1;
+        navigatorObject.GetComponent<UnityEngine.AI.NavMeshAgent>().avoidancePriority = 50;
+        navigator = navigatorObject.GetComponent<UnityEngine.AI.NavMeshAgent>();
+
+    }
+
+    void Update()
+    {
+
+        navigator.transform.localPosition = new Vector3(0, carController.FrontLeftWheelCollider.transform.localPosition.y, carController.FrontLeftWheelCollider.transform.localPosition.z);
+
+    }
+
+    void FixedUpdate()
+    {
+        //Debug.Log(" RCC_AICarController carController.canControl = " + carController.canControl);
+        if (!carController.canControl)
+            return;
+
+        Navigation();
+        //FixedRaycasts();
+        ApplyTorques();
+        //Resetting();
+
+    }
+
+    void Navigation()
+    {
+
+        if (!waypointsContainer)
+        {
+            Debug.LogError("Waypoints Container Couldn't Found!");
+            enabled = false;
+            return;
+        }
+        if (_AIType == AIType.FollowWaypoints && waypointsContainer && waypointsContainer.waypoints.Count < 1)
+        {
+            Debug.LogError("Waypoints Container Doesn't Have Any Waypoints!");
+            enabled = false;
+            return;
+        }
+
+        // Next waypoint's position.
+        Vector3 nextWaypointPosition = transform.InverseTransformPoint(new Vector3(waypointsContainer.waypoints[currentWaypoint].position.x, transform.position.y, waypointsContainer.waypoints[currentWaypoint].position.z));
+        float navigatorInput = Mathf.Clamp(transform.InverseTransformDirection(navigator.desiredVelocity).x * 1.5f, -1f, 1f);
+
+        if (_AIType == AIType.FollowWaypoints)
+        {
+            if (navigator.isOnNavMesh)
+                navigator.SetDestination(waypointsContainer.waypoints[currentWaypoint].position);
+        }
+        else
+        {
+            if (navigator.isOnNavMesh)
+                navigator.SetDestination(waypointsContainer.target.position);
+        }
+
+        //Debug.Log("navigator.isOnNavMesh = " + navigator.isOnNavMesh);
+
+        //Steering Input.
+        if (carController.direction == 1)
+        {
+            if (!ignoreWaypointNow)
+                steerInput = Mathf.Clamp((navigatorInput + rayInput), -1f, 1f);
+            else
+                steerInput = Mathf.Clamp(rayInput, -1f, 1f);
+        }
+        else
+        {
+            steerInput = Mathf.Clamp((-navigatorInput - rayInput), -1f, 1f);
+        }
+
+        if (!inBrakeZone)
+        {
+            if (carController.speed >= 25)
+            {
+                brakeInput = Mathf.Lerp(0f, .85f, (Mathf.Abs(steerInput)));
+            }
+            else
+            {
+                brakeInput = 0f;
+            }
+        }
+        else
+        {
+            brakeInput = Mathf.Lerp(0f, 1f, (carController.speed - maximumSpeedInBrakeZone) / maximumSpeedInBrakeZone);
+        }
+
+        if (!inBrakeZone)
+        {
+
+            if (carController.speed >= 10)
+            {
+                if (!carController.changingGear)
+                    gasInput = Mathf.Clamp(1f - (Mathf.Abs(navigatorInput / 10f) - Mathf.Abs(rayInput / 10f)), .75f, 1f);
+                else
+                    gasInput = 0f;
+            }
+            else
+            {
+                if (!carController.changingGear)
+                    gasInput = 1f;
+                else
+                    gasInput = 0f;
+            }
+
+        }
+        else
+        {
+
+            if (!carController.changingGear)
+                gasInput = Mathf.Lerp(1f, 0f, (carController.speed) / maximumSpeedInBrakeZone);
+            else
+                gasInput = 0f;
+
+        }
+
+        if (_AIType == AIType.FollowWaypoints)
+        {
+
+            // Checks for the distance to next waypoint. If it is less than written value, then pass to next waypoint.
+            if (nextWaypointPosition.magnitude < nextWaypointPassRadius)
+            {
+
+                currentWaypoint++;
+                totalWaypointPassed++;
+
+                // If all waypoints are passed, sets the current waypoint to first waypoint and increase lap.
+                if (currentWaypoint >= waypointsContainer.waypoints.Count)
+                {
+                    currentWaypoint = 0;
+                    lap++;
+                }
+
+            }
+
+        }
+
+    }
+
+    void Resetting()
+    {
+
+        if (carController.speed <= 5 && transform.InverseTransformDirection(rigid.velocity).z < 1f)
+            resetTime += Time.deltaTime;
+
+        if (resetTime >= 2)
+            carController.direction = -1;
+
+        if (resetTime >= 4 || carController.speed >= 25)
+        {
+            carController.direction = 1;
+            resetTime = 0;
+        }
+
+    }
+
+    void FixedRaycasts()
+    {
+
+        Vector3 forward = transform.TransformDirection(new Vector3(0, 0, 1));
+        Vector3 pivotPos = new Vector3(transform.localPosition.x, carController.FrontLeftWheelCollider.transform.position.y, transform.localPosition.z);
+        RaycastHit hit;
+
+        // New bools effected by fixed raycasts.
+        bool tightTurn = false;
+        bool wideTurn = false;
+        bool sideTurn = false;
+        bool tightTurn1 = false;
+        bool wideTurn1 = false;
+        bool sideTurn1 = false;
+
+        // New input steers effected by fixed raycasts.
+        float newinputSteer1 = 0f;
+        float newinputSteer2 = 0f;
+        float newinputSteer3 = 0f;
+        float newinputSteer4 = 0f;
+        float newinputSteer5 = 0f;
+        float newinputSteer6 = 0f;
+
+        // Drawing Rays.
+        Debug.DrawRay(pivotPos, Quaternion.AngleAxis(25, transform.up) * forward * wideRayLength, Color.white);
+        Debug.DrawRay(pivotPos, Quaternion.AngleAxis(-25, transform.up) * forward * wideRayLength, Color.white);
+
+        Debug.DrawRay(pivotPos, Quaternion.AngleAxis(7, transform.up) * forward * tightRayLength, Color.white);
+        Debug.DrawRay(pivotPos, Quaternion.AngleAxis(-7, transform.up) * forward * tightRayLength, Color.white);
+
+        Debug.DrawRay(pivotPos, Quaternion.AngleAxis(90, transform.up) * forward * sideRayLength, Color.white);
+        Debug.DrawRay(pivotPos, Quaternion.AngleAxis(-90, transform.up) * forward * sideRayLength, Color.white);
+
+        // Wide Raycasts.
+        if (Physics.Raycast(pivotPos, Quaternion.AngleAxis(25, transform.up) * forward, out hit, wideRayLength, obstacleLayers) && !hit.collider.isTrigger && hit.transform.root != transform)
+        {
+            Debug.DrawRay(pivotPos, Quaternion.AngleAxis(25, transform.up) * forward * wideRayLength, Color.red);
+            newinputSteer1 = Mathf.Lerp(-.5f, 0f, (hit.distance / wideRayLength));
+            wideTurn = true;
+        }
+
+        else
+        {
+            newinputSteer1 = 0f;
+            wideTurn = false;
+        }
+
+        if (Physics.Raycast(pivotPos, Quaternion.AngleAxis(-25, transform.up) * forward, out hit, wideRayLength, obstacleLayers) && !hit.collider.isTrigger && hit.transform.root != transform)
+        {
+            Debug.DrawRay(pivotPos, Quaternion.AngleAxis(-25, transform.up) * forward * wideRayLength, Color.red);
+            newinputSteer4 = Mathf.Lerp(.5f, 0f, (hit.distance / wideRayLength));
+            wideTurn1 = true;
+        }
+        else
+        {
+            newinputSteer4 = 0f;
+            wideTurn1 = false;
+        }
+
+        // Tight Raycasts.
+        if (Physics.Raycast(pivotPos, Quaternion.AngleAxis(7, transform.up) * forward, out hit, tightRayLength, obstacleLayers) && !hit.collider.isTrigger && hit.transform.root != transform)
+        {
+            Debug.DrawRay(pivotPos, Quaternion.AngleAxis(7, transform.up) * forward * tightRayLength, Color.red);
+            newinputSteer3 = Mathf.Lerp(-1f, 0f, (hit.distance / tightRayLength));
+            tightTurn = true;
+        }
+        else
+        {
+            newinputSteer3 = 0f;
+            tightTurn = false;
+        }
+
+        if (Physics.Raycast(pivotPos, Quaternion.AngleAxis(-7, transform.up) * forward, out hit, tightRayLength, obstacleLayers) && !hit.collider.isTrigger && hit.transform.root != transform)
+        {
+            Debug.DrawRay(pivotPos, Quaternion.AngleAxis(-7, transform.up) * forward * tightRayLength, Color.red);
+            newinputSteer2 = Mathf.Lerp(1f, 0f, (hit.distance / tightRayLength));
+            tightTurn1 = true;
+        }
+        else
+        {
+            newinputSteer2 = 0f;
+            tightTurn1 = false;
+        }
+
+        // Side Raycasts.
+        if (Physics.Raycast(pivotPos, Quaternion.AngleAxis(90, transform.up) * forward, out hit, sideRayLength, obstacleLayers) && !hit.collider.isTrigger && hit.transform.root != transform)
+        {
+            Debug.DrawRay(pivotPos, Quaternion.AngleAxis(90, transform.up) * forward * sideRayLength, Color.red);
+            newinputSteer5 = Mathf.Lerp(-1f, 0f, (hit.distance / sideRayLength));
+            sideTurn = true;
+        }
+        else
+        {
+            newinputSteer5 = 0f;
+            sideTurn = false;
+        }
+
+        if (Physics.Raycast(pivotPos, Quaternion.AngleAxis(-90, transform.up) * forward, out hit, sideRayLength, obstacleLayers) && !hit.collider.isTrigger && hit.transform.root != transform)
+        {
+            Debug.DrawRay(pivotPos, Quaternion.AngleAxis(-90, transform.up) * forward * sideRayLength, Color.red);
+            newinputSteer6 = Mathf.Lerp(1f, 0f, (hit.distance / sideRayLength));
+            sideTurn1 = true;
+        }
+        else
+        {
+            newinputSteer6 = 0f;
+            sideTurn1 = false;
+        }
+
+        if (wideTurn || wideTurn1 || tightTurn || tightTurn1 || sideTurn || sideTurn1)
+            raycasting = true;
+        else
+            raycasting = false;
+
+        if (raycasting)
+            rayInput = (newinputSteer1 + newinputSteer2 + newinputSteer3 + newinputSteer4 + newinputSteer5 + newinputSteer6);
+        else
+            rayInput = 0f;
+
+        if (raycasting && Mathf.Abs(rayInput) > .5f)
+            ignoreWaypointNow = true;
+        else
+            ignoreWaypointNow = false;
+
+    }
+
+    void ApplyTorques()
+    {
+
+        if (carController.direction == 1)
+        {
+            if (!limitSpeed) // un-tick the box
+            {
+                carController.gasInput = gasInput;
+            }
+            else // tick the box
+            {
+                //carController.gasInput = gasInput * Mathf.Clamp01(Mathf.Lerp(10f, 0f, (carController.speed) / maximumSpeed));
+                carController.gasInput = Input.GetAxis(RCCSettings.verticalInput) * 0.5f;
+            }
+        }
+        else
+        {
+            carController.gasInput = 0f;
+        }
+
+        if (smoothedSteer)
+            carController.steerInput = Mathf.Lerp(carController.steerInput, steerInput, Time.deltaTime * 20f);
+        else
+            carController.steerInput = steerInput;
+
+        if (carController.direction == 1)
+            carController.brakeInput = brakeInput;
+        else
+            carController.brakeInput = gasInput;
+
+    }
+
+    void OnTriggerEnter(Collider col)
+    {
+
+        if (col.gameObject.GetComponent<RCC_AIBrakeZone>())
+        {
+            inBrakeZone = true;
+            maximumSpeedInBrakeZone = col.gameObject.GetComponent<RCC_AIBrakeZone>().targetSpeed;
+        }
+
+    }
+
+    void OnTriggerExit(Collider col)
+    {
+
+        if (col.gameObject.GetComponent<RCC_AIBrakeZone>())
+        {
+            inBrakeZone = false;
+            maximumSpeedInBrakeZone = 0;
+        }
+
+    }
+
+    
 }

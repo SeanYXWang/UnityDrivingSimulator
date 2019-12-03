@@ -38,6 +38,7 @@ public class RCC_DashboardInputs : MonoBehaviour {
 	internal bool Headlights = false;
 	internal RCC_CarControllerV3.IndicatorsOn indicators;
 
+
 	void Update(){
 
 		if(RCC_Settings.Instance.uiType == RCC_Settings.UIType.None){
@@ -45,9 +46,11 @@ public class RCC_DashboardInputs : MonoBehaviour {
 			enabled = false;
 			return;
 		}
-		
+        
+        //Debug.Log(" RCC_DASHBOARD currentCarController.canControl = " + currentCarController.canControl);
+        //Debug.Log(" RCC_DASHBOARD currentCarController.AIController = " + currentCarController.AIController);
 
-		GetValues();
+        GetValues();
 
 	}
 	
@@ -62,15 +65,15 @@ public class RCC_DashboardInputs : MonoBehaviour {
 	}
 
 	void GetValues(){
-
-		if(!currentCarController)
+        Debug.Log(" HERE = ");
+        if (!currentCarController)
 			return;
-
-		if(!currentCarController.canControl || currentCarController.AIController){
-			return;
-		}
-
-		if(NOSGauge){
+        Debug.Log(" --------------------HERE = ");
+  //      if (!currentCarController.canControl || currentCarController.AIController){
+		//	return;
+		//}
+        Debug.Log(" --------------------HERE------------------- = ");
+        if (NOSGauge){
 			if(currentCarController.useNOS){
 				if(!NOSGauge.activeSelf)
 					NOSGauge.SetActive(true);
@@ -92,7 +95,8 @@ public class RCC_DashboardInputs : MonoBehaviour {
 		
 		RPM = currentCarController.engineRPM;
 		KMH = currentCarController.speed;
-		direction = currentCarController.direction;
+        Debug.Log(" RCC_DASHBOARD KMH = currentCarController.speed; = " + KMH);
+        direction = currentCarController.direction;
 		Gear = currentCarController.currentGear;
 
 		NGear = currentCarController.changingGear;

@@ -66,7 +66,7 @@ public class RCC_UIDashboardDisplay : MonoBehaviour {
 				Speedo.text = (inputs.KMH * 1.02f).ToString("0");
 			}
 			else
-					Speedo.text = (inputs.KMH * 0.62f).ToString("0") + "MPH";
+				Speedo.text = (inputs.KMH * 0.62f).ToString("0") + "MPH";
 
 			if(GearLabel){
 				if(!inputs.NGear)

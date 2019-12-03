@@ -425,6 +425,13 @@ public class RCC_CarControllerV3 : MonoBehaviour {
 			if(GameObject.FindObjectOfType<RCC_DashboardInputs>())
 				GameObject.FindObjectOfType<RCC_DashboardInputs>().GetVehicle(this);
 		}
+        else
+        {
+
+            // When AI control car
+            if (GameObject.FindObjectOfType<RCC_DashboardInputs>())
+                GameObject.FindObjectOfType<RCC_DashboardInputs>().GetVehicle(this);
+        }
 
 		changingGear = false;
      //   SoundsInitialize();
@@ -719,8 +726,8 @@ public class RCC_CarControllerV3 : MonoBehaviour {
 
 	void Inputs()
 	{
-
-	    if (!isRuning)
+        //Debug.Log("Debug =  i am here");
+        if (!isRuning)
 	    {
 	        gasInput = 0;
 	        return;
@@ -1445,8 +1452,8 @@ public class RCC_CarControllerV3 : MonoBehaviour {
 			}
 		}
 
-		turboSound.volume = Mathf.Lerp(turboSound.volume, turboBoost / 30f, Time.deltaTime * 5f);
-		turboSound.pitch = Mathf.Lerp(Mathf.Clamp(turboSound.pitch, 2f, 3f), (turboBoost / 30f) * 2f, Time.deltaTime * 5f);
+		//turboSound.volume = Mathf.Lerp(turboSound.volume, turboBoost / 30f, Time.deltaTime * 5f);
+		//turboSound.pitch = Mathf.Lerp(Mathf.Clamp(turboSound.pitch, 2f, 3f), (turboBoost / 30f) * 2f, Time.deltaTime * 5f);
 
 
 	}

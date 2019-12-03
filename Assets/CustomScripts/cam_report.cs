@@ -60,7 +60,7 @@ public class cam_report : MonoBehaviour
 
     void ReportPose()
     {
-        string[] rowDataTemp = new string[7];
+        string[] rowDataTemp = new string[10];
         rowDataTemp[0] = DateTime.UtcNow.ToString("hh.mm.ss.ffffff");
         rowDataTemp[1] = car.transform.position.x.ToString();
         rowDataTemp[2] = car.transform.position.y.ToString();
@@ -68,6 +68,9 @@ public class cam_report : MonoBehaviour
         rowDataTemp[4] = car.transform.eulerAngles.x.ToString();
         rowDataTemp[5] = car.transform.eulerAngles.y.ToString();
         rowDataTemp[6] = car.transform.eulerAngles.z.ToString();
+        rowDataTemp[7] = gasInput.ToString(); ;
+        rowDataTemp[8] = breakInput.ToString(); ;
+        rowDataTemp[9] = steerInput.ToString(); ;
         sb.AppendLine(string.Join(",", rowDataTemp));
 
 
