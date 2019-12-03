@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using System;
 using LSL;
+using UnityEngine.UI;
 
 public class cam_report : MonoBehaviour
 {
@@ -14,6 +15,17 @@ public class cam_report : MonoBehaviour
     private liblsl.XMLElement chns;
     // create outlet for the stream
     private liblsl.StreamOutlet outlet;
+
+    //will write a different number depending on stage of experiment
+    //0 may be any other time other than the eye tracking validation
+    //1 may be when there is a fixation cross
+    //all other numbers are the validation image number plus 1.
+    public GameObject SplashScreenManager;
+    public Image[] SplashImage;
+    public Text Speedo_text;
+    public Image cross;
+    public Image Speedo_img;
+
     // save the car pose data in float
     //private float[] rowDataTempFloat;
 
@@ -26,11 +38,12 @@ public class cam_report : MonoBehaviour
     private StringBuilder sb = new StringBuilder();
     private string filename;
     private string filePath;
+
     // Start is called before the first frame update
     void Start()
     {
         filePath = getPath();
-        string[] rowDataTemp = new string[7];
+        string[] rowDataTemp = new string[11];
         rowDataTemp[0] = "Timestamp";
         rowDataTemp[1] = "x_POS";
         rowDataTemp[2] = "y_POS";
@@ -38,6 +51,10 @@ public class cam_report : MonoBehaviour
         rowDataTemp[4] = "x_ANGLE";
         rowDataTemp[5] = "y_ANGLE";
         rowDataTemp[6] = "z_ANGLE";
+        rowDataTemp[7] = "gasInput";
+        rowDataTemp[8] = "break";
+        rowDataTemp[9] = "steering";
+        rowDataTemp[10] = "splash";
         sb.AppendLine(string.Join(",", rowDataTemp));
         InvokeRepeating("ReportPose", 1.0f, 0.01f);
 
@@ -45,8 +62,9 @@ public class cam_report : MonoBehaviour
         breakInput = 0.0;
         steerInput = 0.0;
 
+
         // create stream info and outlet
-        info = new liblsl.StreamInfo("UnityCamPos2", "CamPos", 10, 100, liblsl.channel_format_t.cf_float32, "CamPos_sourceID");
+        info = new liblsl.StreamInfo("UnityCamPos2", "CamPos", 11, 100, liblsl.channel_format_t.cf_float32, "CamPos_sourceID");
         // chns = info.desc().append_child("channels");
 
         outlet = new liblsl.StreamOutlet(info);
@@ -58,6 +76,32 @@ public class cam_report : MonoBehaviour
         
     }
 
+    float splashScreenStatus()
+    {
+        if (!SplashScreenManager.GetComponent<splashScreen>().splashScreenActive)
+        {
+            return 0.0f;
+        }
+        else if (cross.canvasRenderer.GetAlpha() == 1)
+        {
+            return 1.0f;
+        }
+        else
+        {
+            float count = 1;
+            foreach (Image i in SplashImage)
+            {
+                count++;
+                if (i.canvasRenderer.GetAlpha() == 1)
+                {
+                    break;
+                }
+            }
+            return count;
+        }
+    }
+
+
     void ReportPose()
     {
         string[] rowDataTemp = new string[10];
@@ -68,9 +112,9 @@ public class cam_report : MonoBehaviour
         rowDataTemp[4] = car.transform.eulerAngles.x.ToString();
         rowDataTemp[5] = car.transform.eulerAngles.y.ToString();
         rowDataTemp[6] = car.transform.eulerAngles.z.ToString();
-        rowDataTemp[7] = gasInput.ToString(); ;
-        rowDataTemp[8] = breakInput.ToString(); ;
-        rowDataTemp[9] = steerInput.ToString(); ;
+        rowDataTemp[7] = gasInput.ToString(); 
+        rowDataTemp[8] = breakInput.ToString(); 
+        rowDataTemp[9] = steerInput.ToString(); 
         sb.AppendLine(string.Join(",", rowDataTemp));
 
 
@@ -78,7 +122,7 @@ public class cam_report : MonoBehaviour
         //TODO: edit here for Lab Stream Layer code. 
         //Debug.Log("gas, break, steer: " + gasInput + "," + breakInput + "," + steerInput);
 
-        float [] rowDataTempFloat = new float[10];
+        float [] rowDataTempFloat = new float[11];
         rowDataTempFloat[0] = (float)(new TimeSpan(DateTime.Now.Ticks)).TotalMilliseconds;
         rowDataTempFloat[1] = car.transform.position.x;
         rowDataTempFloat[2] = car.transform.position.y;
@@ -89,6 +133,7 @@ public class cam_report : MonoBehaviour
         rowDataTempFloat[7] = (float)gasInput;
         rowDataTempFloat[8] = (float)breakInput;
         rowDataTempFloat[9] = (float)steerInput;
+        rowDataTempFloat[10] = splashScreenStatus();
 
         outlet.push_sample(rowDataTempFloat);
         
