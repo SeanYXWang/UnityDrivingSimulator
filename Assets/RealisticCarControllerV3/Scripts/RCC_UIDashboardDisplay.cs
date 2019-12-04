@@ -63,7 +63,7 @@ public class RCC_UIDashboardDisplay : MonoBehaviour {
 			//added for our digital speedometer
 			if(RCC_Settings.Instance.units == RCC_Settings.Units.KMH)
 			{
-				Speedo.text = (inputs.KMH * 1.02f).ToString("0");
+				Speedo.text = (inputs.KMH * 1.1f).ToString("0");
 			}
 			else
 				Speedo.text = (inputs.KMH * 0.62f).ToString("0") + "MPH";
